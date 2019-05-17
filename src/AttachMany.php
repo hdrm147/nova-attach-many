@@ -41,12 +41,21 @@ class AttachMany extends Field
         $this->resourceName = $resource::uriKey();
         $this->manyToManyRelationship = $this->attribute;
 
-        $this->fillUsing(function($request, $model, $attribute, $requestAttribute) use($resource) {
-            if(is_subclass_of($model, 'Illuminate\Database\Eloquent\Model')) {
-                $model::saved(function($model) use($attribute, $request) {
-                    $model->$attribute()->sync(
-                        json_decode($request->$attribute, true)
-                    );
+        $this->fillUsing(function ($request, $model, $attribute, $requestAttribute) use ($resource) {
+            if (is_subclass_of($model, 'Illuminate\Database\Eloquent\Model')) {
+                $model::saved(function ($model) use ($attribute, $request) {
+
+                    $ids = json_decode($request->$attribute, true);
+                    $changes = $model->$attribute()->sync($ids);
+                    if (get_class($model) != "App\Auction")
+                        return;
+
+                    foreach ($changes["attached"] as $attach) {
+                        \DB::table("auction_bidder")->whereAuctionId($model->id)->whereBidderId($attach)->update([
+                            "username" => \Str::random(8),
+                            "password" => \Str::random(8),
+                        ]);
+                    }
                 });
 
                 unset($request->$attribute);
@@ -58,7 +67,7 @@ class AttachMany extends Field
     {
         $rules = ($rules instanceof Rule || is_string($rules)) ? func_get_args() : $rules;
 
-        $this->rules = [ new ArrayRules($rules) ];
+        $this->rules = [new ArrayRules($rules)];
 
         return $this;
     }
@@ -76,15 +85,15 @@ class AttachMany extends Field
 
     public function authorize(Request $request)
     {
-        if(! $this->resourceClass::authorizable()) {
+        if (!$this->resourceClass::authorizable()) {
             return true;
         }
 
-        if(! isset($request->resource)) {
+        if (!isset($request->resource)) {
             return false;
         }
 
-        return call_user_func([ $this->resourceClass, 'authorizedToViewAny'], $request)
+        return call_user_func([$this->resourceClass, 'authorizedToViewAny'], $request)
             && $request->newResource()->authorizedToAttachAny($request, $this->resourceClass::newModel())
             && parent::authorize($request);
     }
@@ -96,7 +105,7 @@ class AttachMany extends Field
         return $this;
     }
 
-    public function fullWidth($fullWidth=true)
+    public function fullWidth($fullWidth = true)
     {
         $this->fullWidth = $fullWidth;
 
@@ -110,14 +119,14 @@ class AttachMany extends Field
         return $this;
     }
 
-    public function showCounts($showCounts=true)
+    public function showCounts($showCounts = true)
     {
         $this->showCounts = $showCounts;
 
         return $this;
     }
 
-    public function showPreview($showPreview=true)
+    public function showPreview($showPreview = true)
     {
         $this->showPreview = $showPreview;
 
