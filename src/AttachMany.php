@@ -49,11 +49,13 @@ class AttachMany extends Field
                     $changes = $model->$attribute()->sync($ids);
                     if (get_class($model) != "App\Auction")
                         return;
-
                     foreach ($changes["attached"] as $attach) {
+                        $password = \Str::random(8);
+
                         \DB::table("auction_bidder")->whereAuctionId($model->id)->whereBidderId($attach)->update([
                             "username" => \Str::random(8),
-                            "password" => \Str::random(8),
+                            "password" => \Hash::make($password),
+                            "plain_password" => $password
                         ]);
                     }
                 });
