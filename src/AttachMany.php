@@ -43,8 +43,7 @@ class AttachMany extends Field
 
         $this->fillUsing(function($request, $model, $attribute, $requestAttribute) use($resource) {
             if(is_subclass_of($model, 'Illuminate\Database\Eloquent\Model')) {
-                $model::saved(function($model) use($attribute, $request) {
-                    \Log::info($request->attribute,true);
+                $model::saving(function($model) use($attribute, $request) {
                     $model->$attribute()->sync(
                         json_decode($request->$attribute, true)
                     );
